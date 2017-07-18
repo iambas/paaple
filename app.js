@@ -1,8 +1,11 @@
-var w = window.innerWidth;
-var h = window.innerHeight;
+var w = 400;
+var h = 600;
 
-if (w > 600) w = 600;
-if (h > 400) h = 400;
+var isMobile = (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+if (isMobile) {
+    w = window.innerWidth;
+    h = window.innerHeight;
+}
 
 var game = new Phaser.Game(w, h, Phaser.CANVAS, 'game');
 var platforms;
@@ -27,8 +30,6 @@ var mainState = {
         this.score = 0;
         this.scoreText;
         this.end = false;
-
-        game.scale.startFullScreen();
 
         this.scoreText = game.add.text(16, 16, 'Score : ' + this.score, {
             fontSize: '20px',
