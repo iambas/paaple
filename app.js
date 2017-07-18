@@ -1,5 +1,10 @@
-var game = new Phaser.Game(window.screen.availWidth * window.devicePixelRatio, window.screen.availHeight * window.devicePixelRatio, Phaser.CANVAS, 'game');
+var w = window.innerWidth;
+var h = window.innerHeight;
 
+if (w > 600) w = 600;
+if (h > 400) h = 400;
+
+var game = new Phaser.Game(w, h, Phaser.CANVAS, 'game');
 var platforms;
 var BASKET = 'basket';
 var APPLE = 'apple';
@@ -14,7 +19,6 @@ var mainState = {
         game.load.image(APPLE, 'assets/apple.png');
         game.load.image(GRASS, 'assets/grass.png');
         game.load.image(BOMB, 'assets/bomb.png');
-        // Load the keep sound
         game.load.audio(KEEP, 'assets/keep.wav');
         game.load.audio(EXPLOSION, 'assets/explosion.mp3');
     },
@@ -23,6 +27,8 @@ var mainState = {
         this.score = 0;
         this.scoreText;
         this.end = false;
+
+        game.scale.startFullScreen();
 
         this.scoreText = game.add.text(16, 16, 'Score : ' + this.score, {
             fontSize: '20px',
@@ -33,29 +39,22 @@ var mainState = {
 
         platforms = game.add.group();
         platforms.enableBody = true;
-
         this.apples = game.add.group();
         this.bombs = game.add.group();
-        this.grass = [];
-
         this.setupGrass();
 
         this.basket = platforms.create(game.world.width / 2, game.world.height - 70, BASKET);
-        this.basket.scale.setTo(0.2, 0.2);
         this.basket.body.immovable = true;
         this.basket.speed = 3000;
         this.basket.anchor.setTo(0.5);
         this.basket.body.allowGravity = false;
 
         this.timer = game.time.events.loop(1500, this.addApple, this);
-
-        var r = Math.random() * 3000 + 500;
+        var r = Math.random() * 3000 + 1000;
         game.time.events.loop(r, this.addBomb, this);
 
-        // Add the keep sound
         this.keepSound = game.add.audio(KEEP);
         this.keepSound.volume = 0.2;
-
         this.expSound = game.add.audio(EXPLOSION);
         this.expSound.volume = 0.2;
     },
@@ -64,9 +63,7 @@ var mainState = {
         if (!this.end) {
             game.physics.arcade.overlap(this.basket, this.apples, this.hitApple, null, this);
             game.physics.arcade.overlap(this.basket, this.bombs, this.hitBomb, null, this);
-            for (var i = 0; i < 8; i++) {
-                game.physics.arcade.overlap(this.grass[i], this.apples, this.gameOver, null, this);
-            }
+            game.physics.arcade.overlap(this.grass, this.apples, this.gameOver, null, this);
 
             this.basket.x = game.input.x;
         } else {
@@ -74,6 +71,27 @@ var mainState = {
                 game.state.start('main');
             }
         }
+    },
+
+    setupGrass: function() {
+        this.grass = platforms.create(0, game.world.height - 35, GRASS);
+        this.grass.body.allowGravity = false;
+    },
+
+    addApple: function() {
+        var ran = Math.random() * (game.world.width - 40);
+        var apple = game.add.sprite(ran, -200, APPLE);
+        game.physics.enable(apple, Phaser.Physics.ARCADE);
+        this.apples.add(apple);
+        apple.body.gravity.y = 200;
+    },
+
+    addBomb: function() {
+        var ran = Math.random() * (game.world.width - 40);
+        var bomb = game.add.sprite(ran, -200, BOMB);
+        game.physics.enable(bomb, Phaser.Physics.ARCADE);
+        this.bombs.add(bomb);
+        bomb.body.gravity.y = 300;
     },
 
     hitApple: function(basket, apple) {
@@ -89,40 +107,12 @@ var mainState = {
         if (!this.end) {
             bomb.destroy();
             this.gameOver();
-            this.expSound.play();
-        }
-    },
-
-    addApple: function() {
-        var ran = Math.random() * (game.world.width - 40);
-        var apple = game.add.sprite(ran, -200, APPLE);
-        game.physics.enable(apple, Phaser.Physics.ARCADE);
-        this.apples.add(apple);
-        apple.scale.setTo(0.1, 0.1);
-        apple.body.gravity.y = 200;
-    },
-
-    addBomb: function() {
-        var ran = Math.random() * (game.world.width - 40);
-        var bomb = game.add.sprite(ran, -200, BOMB);
-        game.physics.enable(bomb, Phaser.Physics.ARCADE);
-        this.bombs.add(bomb);
-        bomb.scale.setTo(0.1, 0.1);
-        bomb.body.gravity.y = 200;
-    },
-
-    setupGrass: function() {
-        var w = -40;
-        for (var i = 0; i < 30; i++) {
-            this.grass[i] = platforms.create(w, game.world.height - 35, GRASS);
-            this.grass[i].scale.setTo(0.2, 0.2);
-            this.grass[i].body.allowGravity = false;
-            w += 50;
         }
     },
 
     gameOver: function(grass, apple) {
         this.end = true;
+        this.expSound.play();
 
         var message = 'Game Over!';
         this.endText = this.add.text(game.world.width / 2, game.world.height / 2 - 20, message, {
