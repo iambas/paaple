@@ -12,10 +12,72 @@ var platforms;
 var BASKET = 'basket';
 var APPLE = 'apple';
 var PAPPLE = 'papple';
+var TREE = 'tree';
 var GRASS = 'grass';
 var BOMB = 'bomb';
 var KEEP = 'keep';
 var EXPLOSION = 'explosion';
+var BG_SOUND = 'bg_sound';
+
+var homeState = {
+    preload: function() {
+        game.load.image(BASKET, 'assets/basket.png');
+        game.load.image(APPLE, 'assets/apple.png');
+        game.load.image(TREE, 'assets/tree.png');
+        game.load.image(GRASS, 'assets/grass.png');
+        game.load.image(BOMB, 'assets/bomb.png');
+        game.load.audio(BG_SOUND, 'assets/bg_sound.mp3');
+    },
+
+    create: function() {
+        platforms = game.add.group();
+        platforms.enableBody = true;
+
+        this.tree = platforms.create(game.world.width / 2, game.world.height - 10, TREE);
+        this.tree.anchor.setTo(0.5, 1);
+
+        this.grass = platforms.create(0, game.world.height - 35, GRASS);
+        this.grass.body.allowGravity = false;
+
+        this.apple = platforms.create(game.world.width / 2, game.world.height - 100, APPLE);
+        this.apple.anchor.setTo(0.5);
+
+        this.bomb = platforms.create(50, 50, BOMB);
+        this.bomb.anchor.setTo(0.5);
+
+        this.basket = platforms.create(game.world.width / 2, game.world.height - 70, BASKET);
+        this.basket.anchor.setTo(0.5);
+
+        this.textAlert();
+
+        this.bgSound = game.add.audio(BG_SOUND);
+        this.bgSound.volume = 0.1;
+        this.bgSound.play();
+    },
+
+    update: function() {
+        if (this.input.activePointer.isDown) {
+            game.state.start('main');
+            this.bgSound.stop();
+        }
+    },
+
+    textAlert: function() {
+        var txtPappleGame = 'Papple Game';
+        this.endText = this.add.text(game.world.width / 2, game.world.height / 2 - 20, txtPappleGame, {
+            font: '48px serif',
+            fill: '#fff'
+        });
+        this.endText.anchor.setTo(0.5, 0.5);
+
+        var txtPlay = 'Tab to play';
+        this.playText = this.add.text(game.world.width / 2, game.world.height / 2 + 20, txtPlay, {
+            font: '24px serif',
+            fill: '#fff'
+        });
+        this.playText.anchor.setTo(0.5, 0.5);
+    }
+}
 
 var mainState = {
     preload: function() {
@@ -26,6 +88,7 @@ var mainState = {
         game.load.image(BOMB, 'assets/bomb.png');
         game.load.audio(KEEP, 'assets/keep.wav');
         game.load.audio(EXPLOSION, 'assets/explosion.mp3');
+        game.load.audio(BG_SOUND, 'assets/bg_sound.mp3');
     },
 
     create: function() {
@@ -47,6 +110,12 @@ var mainState = {
         this.apples = game.add.group();
         this.papples = game.add.group();
         this.bombs = game.add.group();
+
+        this.tree = platforms.create(game.world.width / 2, game.world.height - 10, TREE);
+        this.tree.anchor.setTo(0.5, 1);
+        this.tree.alpha = 0.5;
+        this.tree.body.allowGravity = false;
+
         this.setupGrass();
 
         this.basket = platforms.create(game.world.width / 2, game.world.height - 70, BASKET);
@@ -64,6 +133,9 @@ var mainState = {
         this.keepSound.volume = 0.2;
         this.expSound = game.add.audio(EXPLOSION);
         this.expSound.volume = 0.2;
+        this.bgSound = game.add.audio(BG_SOUND);
+        this.bgSound.volume = 0.1;
+        this.bgSound.play();
     },
 
     update: function() {
@@ -72,6 +144,7 @@ var mainState = {
             game.physics.arcade.overlap(this.basket, this.papples, this.hitPapple, null, this);
             game.physics.arcade.overlap(this.basket, this.bombs, this.hitBomb, null, this);
             game.physics.arcade.overlap(this.grass, this.apples, this.gameOver, null, this);
+            game.physics.arcade.overlap(this.grass, this.papples, this.gameOver, null, this);
 
             this.basket.x = game.input.x;
         } else {
@@ -145,11 +218,12 @@ var mainState = {
     gameOver: function(grass, apple) {
         this.expSound.play();
         this.end = true;
-        this.textAlert('Game Over!');
+        this.textAlert();
     },
 
-    textAlert: function(message) {
-        this.endText = this.add.text(game.world.width / 2, game.world.height / 2 - 20, message, {
+    textAlert: function() {
+        var txtGameOver = 'Game Over!';
+        this.endText = this.add.text(game.world.width / 2, game.world.height / 2 - 20, txtGameOver, {
             font: '48px serif',
             fill: '#fff'
         });
@@ -164,5 +238,7 @@ var mainState = {
     }
 };
 
+
+game.state.add('home', homeState);
 game.state.add('main', mainState);
-game.state.start('main');
+game.state.start('home');
