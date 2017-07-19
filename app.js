@@ -17,49 +17,66 @@ var GRASS = 'grass';
 var BOMB = 'bomb';
 var KEEP = 'keep';
 var EXPLOSION = 'explosion';
-var BG_SOUND = 'bg_sound';
+var INTRO = 'intro';
+var SOUND = 'sound';
+var HIGH_SCORE = 'high_score_papple';
+var hightScore = getCookie(HIGH_SCORE);
 
 var homeState = {
     preload: function() {
         game.load.image(BASKET, 'assets/basket.png');
         game.load.image(APPLE, 'assets/apple.png');
+        game.load.image(PAPPLE, 'assets/papple.png');
         game.load.image(TREE, 'assets/tree.png');
         game.load.image(GRASS, 'assets/grass.png');
         game.load.image(BOMB, 'assets/bomb.png');
-        game.load.audio(BG_SOUND, 'assets/bg_sound.mp3');
+        game.load.audio(KEEP, 'assets/keep.wav');
+        game.load.audio(EXPLOSION, 'assets/explosion.mp3');
+        game.load.audio(INTRO, 'assets/intro.mp3');
+        game.load.audio(SOUND, 'assets/sound.mp3');
     },
 
     create: function() {
+        game.stage.backgroundColor = "#2196F3";
         platforms = game.add.group();
         platforms.enableBody = true;
 
         this.tree = platforms.create(game.world.width / 2, game.world.height - 10, TREE);
         this.tree.anchor.setTo(0.5, 1);
-
+        this.tree.alpha = 0.5;
         this.grass = platforms.create(0, game.world.height - 35, GRASS);
         this.grass.body.allowGravity = false;
-
-        this.apple = platforms.create(game.world.width / 2, game.world.height - 100, APPLE);
-        this.apple.anchor.setTo(0.5);
-
-        this.bomb = platforms.create(50, 50, BOMB);
-        this.bomb.anchor.setTo(0.5);
-
-        this.basket = platforms.create(game.world.width / 2, game.world.height - 70, BASKET);
-        this.basket.anchor.setTo(0.5);
+        this.grass.alpha = 0.9;
 
         this.textAlert();
-
-        this.bgSound = game.add.audio(BG_SOUND);
-        this.bgSound.volume = 0.1;
-        this.bgSound.play();
+        this.introSound = game.add.audio(INTRO);
+        this.playIntro();
+        game.time.events.loop(3635, this.playIntro, this);
     },
 
     update: function() {
         if (this.input.activePointer.isDown) {
             game.state.start('main');
-            this.bgSound.stop();
+            this.introSound.stop();
         }
+    },
+
+    playIntro: function() {
+        this.introSound.play();
+    },
+
+    addApple: function() {
+        var ran = Math.random() * (game.world.width - 50);
+        var apple = game.add.sprite(ran, -200, APPLE);
+        game.physics.enable(apple, Phaser.Physics.ARCADE);
+        apple.body.gravity.y = 200;
+    },
+
+    addBomb: function() {
+        var ran = Math.random() * (game.world.width - 50);
+        var bomb = game.add.sprite(ran, -200, BOMB);
+        game.physics.enable(bomb, Phaser.Physics.ARCADE);
+        bomb.body.gravity.y = 300;
     },
 
     textAlert: function() {
@@ -80,16 +97,7 @@ var homeState = {
 }
 
 var mainState = {
-    preload: function() {
-        game.load.image(BASKET, 'assets/basket.png');
-        game.load.image(APPLE, 'assets/apple.png');
-        game.load.image(PAPPLE, 'assets/papple.png');
-        game.load.image(GRASS, 'assets/grass.png');
-        game.load.image(BOMB, 'assets/bomb.png');
-        game.load.audio(KEEP, 'assets/keep.wav');
-        game.load.audio(EXPLOSION, 'assets/explosion.mp3');
-        game.load.audio(BG_SOUND, 'assets/bg_sound.mp3');
-    },
+    preload: function() {},
 
     create: function() {
         this.score = 0;
@@ -97,13 +105,19 @@ var mainState = {
         this.appleSpeed = 200;
         this.bombSpeed = 300;
 
-        this.scoreText = game.add.text(16, 16, 'Score : ' + this.score, {
+        game.stage.backgroundColor = "#2196F3";
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+        game.physics.arcade.gravity.y = 100;
+
+        if (hightScore == "") hightScore = 0;
+        this.hightScoreText = game.add.text(16, 16, 'High Score : ' + hightScore, {
             fontSize: '20px',
             fill: '#fff'
         });
-
-        game.physics.startSystem(Phaser.Physics.ARCADE);
-        game.physics.arcade.gravity.y = 100;
+        this.scoreText = game.add.text(16, 40, 'Score : ' + this.score, {
+            fontSize: '20px',
+            fill: '#fff'
+        });
 
         platforms = game.add.group();
         platforms.enableBody = true;
@@ -111,31 +125,20 @@ var mainState = {
         this.papples = game.add.group();
         this.bombs = game.add.group();
 
-        this.tree = platforms.create(game.world.width / 2, game.world.height - 10, TREE);
-        this.tree.anchor.setTo(0.5, 1);
-        this.tree.alpha = 0.5;
-        this.tree.body.allowGravity = false;
-
+        this.setupTree();
         this.setupGrass();
+        this.setupBasket();
 
-        this.basket = platforms.create(game.world.width / 2, game.world.height - 70, BASKET);
-        this.basket.body.immovable = true;
-        this.basket.speed = 3000;
-        this.basket.anchor.setTo(0.5);
-        this.basket.body.allowGravity = false;
-
+        var r = Math.random() * 3000 + 1000;
         game.time.events.loop(1000, this.addApple, this);
         game.time.events.loop(10000, this.addPapple, this);
-        var r = Math.random() * 3000 + 1000;
         game.time.events.loop(r, this.addBomb, this);
+        game.time.events.loop(14522, this.playSound, this);
 
         this.keepSound = game.add.audio(KEEP);
-        this.keepSound.volume = 0.2;
         this.expSound = game.add.audio(EXPLOSION);
-        this.expSound.volume = 0.2;
-        this.bgSound = game.add.audio(BG_SOUND);
-        this.bgSound.volume = 0.1;
-        this.bgSound.play();
+        this.sound = game.add.audio(SOUND);
+        this.sound.play();
     },
 
     update: function() {
@@ -145,18 +148,34 @@ var mainState = {
             game.physics.arcade.overlap(this.basket, this.bombs, this.hitBomb, null, this);
             game.physics.arcade.overlap(this.grass, this.apples, this.gameOver, null, this);
             game.physics.arcade.overlap(this.grass, this.papples, this.gameOver, null, this);
-
             this.basket.x = game.input.x;
         } else {
             if (this.input.activePointer.isDown) {
                 game.state.start('main');
+                this.sound.stop();
             }
         }
+    },
+
+    setupTree: function() {
+        this.tree = platforms.create(game.world.width / 2, game.world.height - 10, TREE);
+        this.tree.anchor.setTo(0.5, 1);
+        this.tree.alpha = 0.5;
+        this.tree.body.allowGravity = false;
     },
 
     setupGrass: function() {
         this.grass = platforms.create(0, game.world.height - 35, GRASS);
         this.grass.body.allowGravity = false;
+        this.grass.alpha = 0.9;
+    },
+
+    setupBasket: function() {
+        this.basket = platforms.create(game.world.width / 2, game.world.height - 70, BASKET);
+        this.basket.body.immovable = true;
+        this.basket.speed = 3000;
+        this.basket.anchor.setTo(0.5);
+        this.basket.body.allowGravity = false;
     },
 
     addApple: function() {
@@ -181,6 +200,10 @@ var mainState = {
         game.physics.enable(bomb, Phaser.Physics.ARCADE);
         this.bombs.add(bomb);
         bomb.body.gravity.y = this.bombSpeed++;
+    },
+
+    playSound: function() {
+        this.sound.play();
     },
 
     hitApple: function(basket, apple) {
@@ -208,17 +231,14 @@ var mainState = {
         }
     },
 
-    updateCount: function() {
-        if (!this.end) {
-            this.time--;
-            this.timeText.text = this.time;
-        }
-    },
-
     gameOver: function(grass, apple) {
         this.expSound.play();
         this.end = true;
         this.textAlert();
+
+        if (this.score > hightScore) hightScore = this.score;
+        this.hightScoreText.text = 'High Score : ' + hightScore;
+        document.cookie = HIGH_SCORE + "=" + hightScore;
     },
 
     textAlert: function() {
@@ -238,7 +258,22 @@ var mainState = {
     }
 };
 
-
 game.state.add('home', homeState);
 game.state.add('main', mainState);
 game.state.start('home');
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
