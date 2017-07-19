@@ -20,6 +20,7 @@ var EXPLOSION = 'explosion';
 var INTRO = 'intro';
 var SOUND = 'sound';
 var HIGH_SCORE = 'high_score_papple';
+var BTN_GAME_OVER = 'btn_game_over';
 var hightScore = getCookie(HIGH_SCORE);
 
 var homeState = {
@@ -30,6 +31,7 @@ var homeState = {
         game.load.image(TREE, 'assets/tree.png');
         game.load.image(GRASS, 'assets/grass.png');
         game.load.image(BOMB, 'assets/bomb.png');
+        game.load.image(BTN_GAME_OVER, 'assets/game_over.png');
         game.load.audio(KEEP, 'assets/keep.wav');
         game.load.audio(EXPLOSION, 'assets/explosion.mp3');
         game.load.audio(INTRO, 'assets/intro.mp3');
@@ -81,14 +83,14 @@ var homeState = {
 
     textAlert: function() {
         var txtPappleGame = 'Papple Game';
-        this.endText = this.add.text(game.world.width / 2, game.world.height / 2 - 20, txtPappleGame, {
+        this.endText = this.add.text(game.world.width / 2, game.world.height / 2 - 25, txtPappleGame, {
             font: '48px serif',
             fill: '#fff'
         });
         this.endText.anchor.setTo(0.5, 0.5);
 
         var txtPlay = 'Tab to play';
-        this.playText = this.add.text(game.world.width / 2, game.world.height / 2 + 20, txtPlay, {
+        this.playText = this.add.text(game.world.width / 2, game.world.height / 2 + 25, txtPlay, {
             font: '24px serif',
             fill: '#fff'
         });
@@ -111,11 +113,11 @@ var mainState = {
 
         if (hightScore == "") hightScore = 0;
         this.hightScoreText = game.add.text(16, 16, 'High Score : ' + hightScore, {
-            fontSize: '20px',
+            font: '20px serif',
             fill: '#fff'
         });
         this.scoreText = game.add.text(16, 40, 'Score : ' + this.score, {
-            fontSize: '20px',
+            font: '20px serif',
             fill: '#fff'
         });
 
@@ -128,17 +130,8 @@ var mainState = {
         this.setupTree();
         this.setupGrass();
         this.setupBasket();
-
-        var r = Math.random() * 3000 + 1000;
-        game.time.events.loop(1000, this.addApple, this);
-        game.time.events.loop(10000, this.addPapple, this);
-        game.time.events.loop(r, this.addBomb, this);
-        game.time.events.loop(14522, this.playSound, this);
-
-        this.keepSound = game.add.audio(KEEP);
-        this.expSound = game.add.audio(EXPLOSION);
-        this.sound = game.add.audio(SOUND);
-        this.sound.play();
+        this.timeLoop();
+        this.setupSound();
     },
 
     update: function() {
@@ -149,11 +142,6 @@ var mainState = {
             game.physics.arcade.overlap(this.grass, this.apples, this.gameOver, null, this);
             game.physics.arcade.overlap(this.grass, this.papples, this.gameOver, null, this);
             this.basket.x = game.input.x;
-        } else {
-            if (this.input.activePointer.isDown) {
-                game.state.start('main');
-                this.sound.stop();
-            }
         }
     },
 
@@ -178,28 +166,49 @@ var mainState = {
         this.basket.body.allowGravity = false;
     },
 
+    timeLoop: function() {
+        var r = Math.random() * 3000 + 1000;
+        game.time.events.loop(1000, this.addApple, this);
+        game.time.events.loop(10000, this.addPapple, this);
+        game.time.events.loop(r, this.addBomb, this);
+        game.time.events.loop(14522, this.playSound, this);
+    },
+
+    setupSound: function() {
+        this.keepSound = game.add.audio(KEEP);
+        this.expSound = game.add.audio(EXPLOSION);
+        this.sound = game.add.audio(SOUND);
+        this.sound.play();
+    },
+
     addApple: function() {
-        var ran = Math.random() * (game.world.width - 50);
-        var apple = game.add.sprite(ran, -200, APPLE);
-        game.physics.enable(apple, Phaser.Physics.ARCADE);
-        this.apples.add(apple);
-        apple.body.gravity.y = this.appleSpeed++;
+        if (!this.end) {
+            var ran = Math.random() * (game.world.width - 50);
+            var apple = game.add.sprite(ran, -200, APPLE);
+            game.physics.enable(apple, Phaser.Physics.ARCADE);
+            this.apples.add(apple);
+            apple.body.gravity.y = this.appleSpeed++;
+        }
     },
 
     addPapple: function() {
-        var ran = Math.random() * (game.world.width - 100);
-        var papple = game.add.sprite(ran, -200, PAPPLE);
-        game.physics.enable(papple, Phaser.Physics.ARCADE);
-        this.papples.add(papple);
-        papple.body.gravity.y = this.appleSpeed;
+        if (!this.end) {
+            var ran = Math.random() * (game.world.width - 100);
+            var papple = game.add.sprite(ran, -200, PAPPLE);
+            game.physics.enable(papple, Phaser.Physics.ARCADE);
+            this.papples.add(papple);
+            papple.body.gravity.y = this.appleSpeed;
+        }
     },
 
     addBomb: function() {
-        var ran = Math.random() * (game.world.width - 50);
-        var bomb = game.add.sprite(ran, -200, BOMB);
-        game.physics.enable(bomb, Phaser.Physics.ARCADE);
-        this.bombs.add(bomb);
-        bomb.body.gravity.y = this.bombSpeed++;
+        if (!this.end) {
+            var ran = Math.random() * (game.world.width - 50);
+            var bomb = game.add.sprite(ran, -200, BOMB);
+            game.physics.enable(bomb, Phaser.Physics.ARCADE);
+            this.bombs.add(bomb);
+            bomb.body.gravity.y = this.bombSpeed++;
+        }
     },
 
     playSound: function() {
@@ -234,27 +243,28 @@ var mainState = {
     gameOver: function(grass, apple) {
         this.expSound.play();
         this.end = true;
-        this.textAlert();
+        game.add.button(game.world.centerX - 125, game.world.centerY - 45, BTN_GAME_OVER, this.playOnClick, this, 2, 1, 0);
 
-        if (this.score > hightScore) hightScore = this.score;
+        if (this.score > hightScore) {
+            hightScore = this.score;
+            this.textAlert();
+        }
         this.hightScoreText.text = 'High Score : ' + hightScore;
         document.cookie = HIGH_SCORE + "=" + hightScore;
     },
 
+    playOnClick: function() {
+        game.state.start('main');
+        this.sound.stop();
+    },
+
     textAlert: function() {
-        var txtGameOver = 'Game Over!';
-        this.endText = this.add.text(game.world.width / 2, game.world.height / 2 - 20, txtGameOver, {
+        var txt = 'New Score!';
+        this.endText = this.add.text(game.world.centerX, 120, txt, {
             font: '48px serif',
             fill: '#fff'
         });
         this.endText.anchor.setTo(0.5, 0.5);
-
-        var txtPlay = 'Tab to play';
-        this.playText = this.add.text(game.world.width / 2, game.world.height / 2 + 20, txtPlay, {
-            font: '24px serif',
-            fill: '#fff'
-        });
-        this.playText.anchor.setTo(0.5, 0.5);
     }
 };
 
